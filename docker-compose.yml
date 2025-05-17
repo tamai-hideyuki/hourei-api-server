@@ -41,5 +41,20 @@ services:
     volumes:
       - mysql-volume:/var/lib/mysql
 
+  frontend:
+    container_name: hourei-api-server_frontend
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - app
+
 volumes:
   mysql-volume:
