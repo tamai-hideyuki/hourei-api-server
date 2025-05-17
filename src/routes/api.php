@@ -15,3 +15,13 @@ Route::prefix('hourei')->group(function () {
     Route::get('/articles', [HoureiApiController::class, 'articles']);                   // 条文内容
     Route::get('/updatelawlists/{date}', [HoureiApiController::class, 'updatelawlists']); // 更新法令一覧
 });
+
+Route::get('/hourei/ping', function (){
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    $xml .= '<Ping>';
+    $xml .= '<Status>ok</Status>';
+    $xml .= '<Timestamp>' . now()->setTimezone('Asia/Tokyo')->toIso8601String() . '</Timestamp>';
+    $xml .= '</Ping>';
+
+    return response($xml, 200)->header('Content-Type', 'application/xml');
+});
