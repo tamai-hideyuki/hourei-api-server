@@ -1,12 +1,12 @@
 # 📚 Hourei API Server
 
-**Laravel 12.x + React + Docker** で構築した、[📘 e‑Gov 法令 API](https://elaws.e-gov.go.jp/) をラップする **中継 API サーバー & 最小検索 UI** です。
+**Laravel 12.x + React + Docker** で構築した、[📘 e‑Gov 法令 API](https://elaws.e-gov.go.jp/) をラップする **中継 API サーバー & 最小検索 UI** です。
 
-- **バックエンド** : Laravel 12.x で API4種類を中継（法令一覧 / 本文 / 条文 / 更新情報）
-- **フロントエンド** : Vite + React + Tailwind CSS で “法令一覧 → 条文取得” の簡易 UI
-- **コンテナ** : Nginx / PHP-FPM / MySQL / Node を docker-compose でワンコマンド起動
+- **バックエンド** : Laravel 12.x で API4種類を中継（法令一覧 / 本文 / 条文 / 更新情報）
+- **フロントエンド** : Vite + React + Tailwind CSS で “法令一覧 → 条文取得” の簡易 UI
+- **コンテナ** : Nginx / PHP-FPM / MySQL / Node を docker-compose でワンコマンド起動
 
-このリポジトリを `git clone` して `docker compose up -d` するだけで、バックエンド API とフロント UI の双方が即座に確認できます。
+このリポジトリを `git clone` して `docker compose up -d` するだけで、バックエンド API とフロント UI の双方が即座に確認できます。
 
 ---
 
