@@ -46,7 +46,7 @@ function App() {
                 ))}
             </select>
 
-            {/* 条文指定用の入力 or セレクト */}
+            {/* 条文指定用の入力 */}
             <input
                 type="text"
                 className="border p-2 mr-2 rounded focus:outline-none focus:ring"
@@ -65,8 +65,8 @@ function App() {
 
             {/* 結果表示 */}
             <pre className="mt-4 bg-gray-100 p-4 rounded whitespace-pre-wrap">
-        {content}
-      </pre>
+                {content}
+            </pre>
         </div>
     );
 }
