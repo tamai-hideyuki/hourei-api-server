@@ -32,9 +32,9 @@ function App() {
 
     return (
         <div className="p-4">
-            <h1 className="text-xl mb-2">法令検索UI</h1>
+            <h1 className="text-2xl font-bold mb-4 text-center">法令検索UI</h1>
             <select
-                className="border p-1 mr-2"
+                className="border p-2 mr-2 rounded focus:outline-none focus:ring"
                 value={selected}
                 onChange={e => setSelected(e.target.value)}
             >
@@ -43,10 +43,10 @@ function App() {
                     <option key={l.id} value={l.id}>{l.name}</option>
                 ))}
             </select>
-            <button className="bg-blue-500 text-white px-3" onClick={fetchArticle}>
+            <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded">
                 第1条を取得
             </button>
-            <pre className="mt-4 whitespace-pre-wrap">{content}</pre>
+            <pre className="mt-4 bg-gray-100 p-4 rounded whitespace-pre-wrap">{content}</pre>
         </div>
     );
 }
