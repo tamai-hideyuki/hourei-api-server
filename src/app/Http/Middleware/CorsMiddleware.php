@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -11,19 +12,21 @@ class CorsMiddleware
     {
         $response = $next($request);
 
-        // localhost:5173 と IP:5173 の両方を許可
+        // 許可するオリジンを列挙
         $allowed = [
             'http://localhost:5173',
             'http://192.168.1.10:5173',
+            'http://192.168.3.41:5173',
         ];
         $origin = $request->headers->get('Origin');
 
-        if (in_array($origin, $allowed)) {
+        if (in_array($origin, $allowed, true)) {
             $response->headers->set('Access-Control-Allow-Origin', $origin);
             $response->headers->set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
             $response->headers->set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
         }
 
+        // プレフライト
         if ($request->getMethod() === 'OPTIONS') {
             $response->setStatusCode(204)->setContent('');
         }

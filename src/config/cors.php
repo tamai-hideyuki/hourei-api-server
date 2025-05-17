@@ -7,12 +7,9 @@ return [
 
     // 2. 許可するオリジン
     'allowed_origins' => [
-        'http://localhost:5173',
-        'http://192.168.1.10:5173',
-        'http://localhost:8082',       // フェッチを行うフロントの URL
-        'http://192.168.1.10:8082',
-        '*',                            // 開発中はワイルドカードも可
+        '*',
     ],
+
 
     // 3. 許可する HTTP メソッド
     'allowed_methods' => ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
