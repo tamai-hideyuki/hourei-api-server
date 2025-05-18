@@ -4,6 +4,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HoureiApiController;
 
+
+Route::get('/hourei/lawlists/category/{category}', [HoureiApiController::class, 'lawlistsByCategory']);
+
+
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
@@ -25,3 +29,5 @@ Route::get('/hourei/ping', function (){
 
     return response($xml, 200)->header('Content-Type', 'application/xml');
 });
+
+

@@ -1,25 +1,20 @@
 import { useEffect, useState } from 'react'
 
 export const useLawListByCategory = (categoryId) => {
-    const [data, setData] = useState([])
+    const [data, setData]       = useState([])
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
+    const [error, setError]     = useState(null)
 
     useEffect(() => {
-        const getData = async () => {
-            try {
-                const res = await fetch(`/api/hourei/lawlists/category/${categoryId}`)
-                if (!res.ok) throw new Error('API取得に失敗しました')
-                const json = await res.json()
-                setData(json)
-            } catch (err) {
-                setError(err)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        getData()
+        setLoading(true)
+        fetch(`/api/hourei/lawlists/category/${categoryId}`)
+            .then(res => {
+                if (!res.ok) throw new Error(`Status ${res.status}`)
+                return res.json()
+            })
+            .then(json => setData(json))
+            .catch(err => setError(err))
+            .finally(() => setLoading(false))
     }, [categoryId])
 
     return { data, loading, error }
