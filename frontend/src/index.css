@@ -2,7 +2,7 @@
 body {
   margin: 0;
   font-family: sans-serif;
-  background-color: #fff;
+  background-color: #fafad2;
   color: #000;
 }
 
@@ -84,7 +84,7 @@ body {
 
 .law-item {
   cursor: pointer;
-  color: #2563eb;
+  color: #000000;
   margin-bottom: 0.25rem;
 }
 
