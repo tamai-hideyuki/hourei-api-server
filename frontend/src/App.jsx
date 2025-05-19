@@ -8,6 +8,7 @@ export default function App() {
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 20
     const maxPageButtons = 10
+
     const [selectedLawId, setSelectedLawId] = useState(null)
     const [lawDetail, setLawDetail] = useState(null)
     const [detailLoading, setDetailLoading] = useState(false)
@@ -23,44 +24,39 @@ export default function App() {
             const xml = new DOMParser().parseFromString(xmlText, 'application/xml')
 
             const lawName = xml.querySelector('LawName')?.textContent ?? '名称不明'
-            const paragraphs = Array.from(xml.querySelectorAll('Sentence')).map(
-                (el) => el.textContent.trim()
-            )
+            const articles = Array.from(xml.querySelectorAll('Article')).map((article) => {
+                const title   = article.querySelector('ArticleTitle')?.textContent ?? ''
+                const caption = article.querySelector('ArticleCaption')?.textContent ?? ''
+                const sentences = Array.from(article.querySelectorAll('Sentence')).map(s => s.textContent.trim())
+                return { title, caption, sentences }
+            })
 
-            setLawDetail({ name: lawName, paragraphs })
+            setLawDetail({ name: lawName, articles })
         } catch (e) {
-            setLawDetail({ error: e.message })
+            setLawDetail({ error: e.message, articles: [] })
         } finally {
             setDetailLoading(false)
         }
     }
 
-    // フィルタリング（検索クエリ対応）
+    // 検索フィルタリング
     const filteredLaws = laws.filter((law) =>
         law.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    // ページネーション
+    // ページネーション計算
     const totalPages = Math.ceil(filteredLaws.length / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
     const visibleLaws = filteredLaws.slice(startIndex, startIndex + itemsPerPage)
 
-    // 表示するページ番号リスト
     const getPageNumbers = () => {
-        const half = Math.floor(maxPageButtons / 2)
-        let start = Math.max(currentPage - half, 1)
-        let end = start + maxPageButtons - 1
-
-        if (end > totalPages) {
-            end = totalPages
-            start = Math.max(end - maxPageButtons + 1, 1)
+        const start = currentPage
+            const end = Math.min(start + maxPageButtons - 1, totalPages)
+            return Array.from({ length: end - start + 1 }, (_, i) => start + i)
         }
 
-        return Array.from({ length: end - start + 1 }, (_, i) => start + i)
-    }
-
     if (loading) return <p>法令一覧を読み込み中…</p>
-    if (error) return <p className="text-red-600">エラー: {error.message}</p>
+    if (error)   return <p className="text-red-600">エラー: {error.message}</p>
     if (laws.length === 0) return <p>データがありません</p>
 
     return (
@@ -75,7 +71,7 @@ export default function App() {
                     value={searchQuery}
                     onChange={(e) => {
                         setSearchQuery(e.target.value)
-                        setCurrentPage(1) // 検索時は先頭ページに戻す
+                        setCurrentPage(1)
                     }}
                     className="w-full border rounded p-2 focus:outline-none focus:ring"
                 />
@@ -86,18 +82,70 @@ export default function App() {
                 {visibleLaws.map((law) => (
                     <li
                         key={law.id}
+                        role="button"
+                        tabIndex={0}
                         className="cursor-pointer text-blue-700 hover:underline"
                         onClick={() => fetchLawDetail(law.id)}
                     >
                         {law.name}{' '}
-                        <span className="text-sm text-gray-500">({law.id})</span>
+                        {law.id && <span className="text-sm text-gray-500">({law.id})</span>}
                     </li>
                 ))}
             </ul>
 
-            {/* ページネーション */}
+            {/* 詳細表示 */}
+            {selectedLawId && (
+                <div className="mt-8 border-t pt-4">
+                    <h2 className="text-xl font-bold mb-2">法令詳細</h2>
+
+                    {detailLoading && <p>読み込み中...</p>}
+
+                    {lawDetail?.error && (
+                        <p className="text-red-500">取得エラー: {lawDetail.error}</p>
+                    )}
+
+                    {lawDetail?.articles.length > 0 ? (
+                        <div>
+                            <p className="font-semibold mb-2">{lawDetail.name}</p>
+                            <div className="space-y-4">
+                                {lawDetail.articles.map((article, i) => (
+                                    <div key={i} className="border-b pb-2">
+                                        <p className="font-bold text-lg">
+                                            {article.title}
+                                            {article.caption && (
+                                                <span className="text-sm text-gray-500">
+                          {' '}{article.caption}
+                        </span>
+                                            )}
+                                        </p>
+                                        <div className="pl-4 mt-1 space-y-1">
+                                            {article.sentences.map((text, j) => (
+                                                <p key={j} className="text-sm whitespace-pre-wrap">
+                                                    {text}
+                                                </p>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <p>条文が存在しません</p>
+                    )}
+
+                    <button
+                        onClick={() => setSelectedLawId(null)}
+                        className="mt-4 px-4 py-2 bg-gray-200 rounded"
+                    >
+                        閉じる
+                    </button>
+                </div>
+            )}
+
+            {/* 動的ページネーション */}
             {totalPages > 1 && (
                 <div className="flex justify-center items-center space-x-1 mt-4 flex-wrap">
+                    {/* 前へジャンプ */}
                     {currentPage > 1 && (
                         <button
                             onClick={() => setCurrentPage(currentPage - 1)}
@@ -107,44 +155,52 @@ export default function App() {
                         </button>
                     )}
 
-                    {selectedLawId && (
-                        <div className="mt-8 border-t pt-4">
-                            <h2 className="text-xl font-bold mb-2">法令詳細</h2>
+                    {/* 先頭省略 */}
+                    {(() => {
+                        const pages = getPageNumbers()
+                        const start = pages[0]
+                        const end = pages[pages.length - 1]
+                        return (
+                            <>
+                                {start > 1 && (
+                                    <>
+                                        <button onClick={() => setCurrentPage(1)}
+                                                className="px-3 py-1 rounded border bg-white text-blue-500">
+                                            1
+                                        </button>
+                                        <span className="px-1">…</span>
+                                    </>
+                                )}
 
-                            {detailLoading && <p>読み込み中...</p>}
+                                {/* 中央ページ */}
+                                {pages.map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-3 py-1 rounded border ${
+                                            currentPage === page
+                                                ? 'bg-blue-500 text-white'
+                                                : 'bg-white text-blue-500' }
+                    `}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
 
-                            {lawDetail?.error && (
-                                <p className="text-red-500">取得エラー: {lawDetail.error}</p>
-                            )}
+                                {end < totalPages && (
+                                    <>
+                                        <span className="px-1">…</span>
+                                        <button onClick={() => setCurrentPage(totalPages)}
+                                                className="px-3 py-1 rounded border bg-white text-blue-500">
+                                            {totalPages}
+                                        </button>
+                                    </>
+                                )}
+                            </>
+                        )
+                    })()}
 
-                            {lawDetail?.paragraphs && (
-                                <div>
-                                    <p className="font-semibold mb-2">{lawDetail.name}</p>
-                                    <div className="space-y-2">
-                                        {lawDetail.paragraphs.map((text, i) => (
-                                            <p key={i} className="text-sm whitespace-pre-wrap">{text}</p>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    <button onClick={() => setSelectedLawId(null)}>閉じる</button>
-
-                    {getPageNumbers().map((page) => (
-                        <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            className={`px-3 py-1 rounded border ${
-                                currentPage === page
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-white text-blue-500'
-                            }`}
-                        >
-                            {page}
-                        </button>
-                    ))}
-
+                    {/* 次へジャンプ */}
                     {currentPage < totalPages && (
                         <button
                             onClick={() => setCurrentPage(currentPage + 1)}
