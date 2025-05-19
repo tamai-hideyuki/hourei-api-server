@@ -73,7 +73,7 @@ export default function App() {
                     <h1 className="heading">法令一覧</h1>
                     <input
                         type="text"
-                        placeholder="法令名で検索"
+                        placeholder="法令名を入力"
                         value={searchQuery}
                         onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1) }}
                         className="search-input"
