@@ -50,10 +50,26 @@ export default function App() {
     const visibleLaws = filteredLaws.slice(startIndex, startIndex + itemsPerPage)
 
     const getPageNumbers = () => {
-        const start = currentPage
-            const end = Math.min(start + maxPageButtons - 1, totalPages)
-            return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+        const half = Math.floor(maxPageButtons / 2)
+        // currentPage の前後に half ずつ余裕をもたせる
+        let start = Math.max(1, currentPage - half)
+        let end   = Math.min(totalPages, currentPage + half)
+
+        // ページ数が maxPageButtons に満たないときは、足りない分を両端に振り分ける
+        const shortage = maxPageButtons - (end - start + 1)
+        if (shortage > 0) {
+            // 前が足りなければ後ろに、後ろが足りなければ前に振る
+            start = Math.max(1, start - shortage)
+            end   = Math.min(totalPages, end + shortage)
         }
+
+        // 最終調整：範囲を totalPages の中に収める
+        start = Math.max(1, Math.min(start, totalPages - maxPageButtons + 1))
+        end   = Math.min(totalPages, start + maxPageButtons - 1)
+
+        return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+    }
+
 
     if (loading) return <p>法令一覧を読み込み中…</p>
     if (error)   return <p className="text-red-600">エラー: {error.message}</p>
@@ -179,15 +195,15 @@ export default function App() {
                                 )}
 
                                 {/* 中央ページ */}
-                                {pages.map(page => (
+                                {getPageNumbers().map(page => (
                                     <button
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
                                         className={`px-3 py-1 rounded border ${
                                             currentPage === page
                                                 ? 'bg-blue-500 text-white'
-                                                : 'bg-white text-blue-500' }
-                    `}
+                                                : 'bg-white text-blue-500'
+                                        }`}
                                     >
                                         {page}
                                     </button>
