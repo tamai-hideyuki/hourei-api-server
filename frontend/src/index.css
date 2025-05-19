@@ -2,9 +2,33 @@
 body {
   margin: 0;
   font-family: sans-serif;
-  background-color: #fafad2;
   color: #000;
+
+  background: linear-gradient(
+          135deg,
+          #a67c52,   /* 明るいブラウン */
+          #d2a679,   /* キャラメル */
+          #f5deb3,   /* ウィート（薄い金色） */
+          #e6c6a6,   /* シャンパンベージュ */
+          #a67c52    /* 再びブラウンへ戻る */
+  );
+  background-size: 400% 400%;
+  animation: silkFlow 10s ease-in-out infinite;
 }
+
+
+@keyframes silkFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 
 /*── コンテナ＆レイアウト ──────────────────────────*/
 .app-container {
