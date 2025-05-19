@@ -13,7 +13,8 @@ export default function App() {
     const [lawDetail, setLawDetail] = useState(null)
     const [detailLoading, setDetailLoading] = useState(false)
 
-    const fetchLawDetail = async (lawId) => {
+
+    const fetchLawDetail = async (lawId, lawNameFromList) => {
         setSelectedLawId(lawId)
         setDetailLoading(true)
         setLawDetail(null)
@@ -23,14 +24,13 @@ export default function App() {
             const xmlText = await res.text()
             const xml = new DOMParser().parseFromString(xmlText, 'application/xml')
 
-            const lawName = xml.querySelector('LawName')?.textContent ?? '名称不明'
+            const lawName = lawNameFromList
             const articles = Array.from(xml.querySelectorAll('Article')).map((article) => {
                 const title   = article.querySelector('ArticleTitle')?.textContent ?? ''
                 const caption = article.querySelector('ArticleCaption')?.textContent ?? ''
                 const sentences = Array.from(article.querySelectorAll('Sentence')).map(s => s.textContent.trim())
                 return { title, caption, sentences }
             })
-
             setLawDetail({ name: lawName, articles })
         } catch (e) {
             setLawDetail({ error: e.message, articles: [] })
@@ -85,7 +85,7 @@ export default function App() {
                         role="button"
                         tabIndex={0}
                         className="cursor-pointer text-blue-700 hover:underline"
-                        onClick={() => fetchLawDetail(law.id)}
+                        onClick={() => fetchLawDetail(law.id, law.name)}
                     >
                         {law.name}{' '}
                         {law.id && <span className="text-sm text-gray-500">({law.id})</span>}
