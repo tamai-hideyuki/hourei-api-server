@@ -8,6 +8,32 @@ export default function App() {
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 20
     const maxPageButtons = 10
+    const [selectedLawId, setSelectedLawId] = useState(null)
+    const [lawDetail, setLawDetail] = useState(null)
+    const [detailLoading, setDetailLoading] = useState(false)
+
+    const fetchLawDetail = async (lawId) => {
+        setSelectedLawId(lawId)
+        setDetailLoading(true)
+        setLawDetail(null)
+
+        try {
+            const res = await fetch(`/api/hourei/lawdata?lawId=${lawId}`)
+            const xmlText = await res.text()
+            const xml = new DOMParser().parseFromString(xmlText, 'application/xml')
+
+            const lawName = xml.querySelector('LawName')?.textContent ?? '名称不明'
+            const paragraphs = Array.from(xml.querySelectorAll('Sentence')).map(
+                (el) => el.textContent.trim()
+            )
+
+            setLawDetail({ name: lawName, paragraphs })
+        } catch (e) {
+            setLawDetail({ error: e.message })
+        } finally {
+            setDetailLoading(false)
+        }
+    }
 
     // フィルタリング（検索クエリ対応）
     const filteredLaws = laws.filter((law) =>
@@ -58,7 +84,11 @@ export default function App() {
             {/* 一覧 */}
             <ul className="list-disc list-inside mb-4">
                 {visibleLaws.map((law) => (
-                    <li key={law.id}>
+                    <li
+                        key={law.id}
+                        className="cursor-pointer text-blue-700 hover:underline"
+                        onClick={() => fetchLawDetail(law.id)}
+                    >
                         {law.name}{' '}
                         <span className="text-sm text-gray-500">({law.id})</span>
                     </li>
@@ -76,6 +106,30 @@ export default function App() {
                             &lt;&lt;
                         </button>
                     )}
+
+                    {selectedLawId && (
+                        <div className="mt-8 border-t pt-4">
+                            <h2 className="text-xl font-bold mb-2">法令詳細</h2>
+
+                            {detailLoading && <p>読み込み中...</p>}
+
+                            {lawDetail?.error && (
+                                <p className="text-red-500">取得エラー: {lawDetail.error}</p>
+                            )}
+
+                            {lawDetail?.paragraphs && (
+                                <div>
+                                    <p className="font-semibold mb-2">{lawDetail.name}</p>
+                                    <div className="space-y-2">
+                                        {lawDetail.paragraphs.map((text, i) => (
+                                            <p key={i} className="text-sm whitespace-pre-wrap">{text}</p>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <button onClick={() => setSelectedLawId(null)}>閉じる</button>
 
                     {getPageNumbers().map((page) => (
                         <button
