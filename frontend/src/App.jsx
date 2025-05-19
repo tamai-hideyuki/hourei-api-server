@@ -95,14 +95,26 @@ export default function App() {
 
                     {totalPages > 1 && (
                         <div className="pagination">
-                            {currentPage > 1 && (
-                                <button
-                                    onClick={() => setCurrentPage(currentPage - 1)}
-                                    className="btn"
-                                >
-                                    &lt;&lt;
-                                </button>
-                            )}
+
+                            {/* 最初のページへ移動（<<） */}
+                            <button
+                                onClick={() => setCurrentPage(1)}
+                                className="btn"
+                                disabled={currentPage === 1}
+                            >
+                                &lt;&lt;
+                            </button>
+
+                            {/* 前のページへ移動（<） */}
+                            <button
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                className="btn"
+                                disabled={currentPage === 1}
+                            >
+                                &lt;
+                            </button>
+
+                            {/* 中央のページ番号ボタン */}
                             {getPageNumbers().map(page => (
                                 <button
                                     key={page}
@@ -112,16 +124,28 @@ export default function App() {
                                     {page}
                                 </button>
                             ))}
-                            {currentPage < totalPages && (
-                                <button
-                                    onClick={() => setCurrentPage(currentPage + 1)}
-                                    className="btn"
-                                >
-                                    &gt;&gt;
-                                </button>
-                            )}
+
+                            {/* 次のページへ移動（>） */}
+                            <button
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                className="btn"
+                                disabled={currentPage === totalPages}
+                            >
+                                &gt;
+                            </button>
+
+                            {/* 最後のページへ移動（>>） */}
+                            <button
+                                onClick={() => setCurrentPage(totalPages)}
+                                className="btn"
+                                disabled={currentPage === totalPages}
+                            >
+                                &gt;&gt;
+                            </button>
+
                         </div>
                     )}
+
                 </div>
 
                 {/* 右カラム：詳細 */}
