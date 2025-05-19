@@ -1,21 +1,20 @@
 /*── ベース設定 ─────────────────────────────────*/
 body {
   margin: 0;
-  font-family: sans-serif;
+  font-family: 'Yu Mincho', 'HGP行書体', 'ヒラギノ明朝 ProN W3', 'MS PMincho', serif;
   color: #000;
 
   background: linear-gradient(
           135deg,
-          #a67c52,   /* 明るいブラウン */
-          #d2a679,   /* キャラメル */
-          #f5deb3,   /* ウィート（薄い金色） */
-          #e6c6a6,   /* シャンパンベージュ */
-          #a67c52    /* 再びブラウンへ戻る */
+          #a67c52,
+          #d2a679,
+          #f5deb3,
+          #e6c6a6,
+          #a67c52
   );
   background-size: 400% 400%;
   animation: silkFlow 10s ease-in-out infinite;
 }
-
 
 @keyframes silkFlow {
   0% {
