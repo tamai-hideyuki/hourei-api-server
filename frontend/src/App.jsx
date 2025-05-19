@@ -96,6 +96,12 @@ export default function App() {
             {/* 詳細表示 */}
             {selectedLawId && (
                 <div className="mt-8 border-t pt-4">
+                    <button
+                        onClick={() => setSelectedLawId(null)}
+                        className="mt-4 px-4 py-2 bg-gray-200 rounded"
+                    >
+                        閉じる
+                    </button>
                     <h2 className="text-xl font-bold mb-2">法令詳細</h2>
 
                     {detailLoading && <p>読み込み中...</p>}
