@@ -1,0 +1,42 @@
+services:
+  # ──────────────────────────────────────────────────────
+  # 1. Laravel＋Bref コンテナイメージのビルド
+  #    - ECR へプッシュするためのイメージを生成
+  #    - .env.aws を参照して環境変数を注入
+  # ──────────────────────────────────────────────────────
+  app:
+    image: ${ECR_REPOSITORY_URI}:latest
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.bref
+      args:
+        APP_ENV: production
+        APP_DEBUG: 'false'
+    env_file:
+      - .env.aws
+
+  # ──────────────────────────────────────────────────────
+  # 2. React ビルドコンテナ
+  #    - S3 に同期する静的ファイルを生成
+  #    - .env.production を読み込み、VITE_API_BASE_URL を設定
+  # ──────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: docker/frontend/Dockerfile
+      args:
+        NODE_ENV: production
+    env_file:
+      - frontend/.env.production
+    command: |
+      sh -c "
+        npm ci &&
+        npm run build &&
+        mv dist ../build
+      "
+
+
+# ビルド後は以下コマンドで：
+#   docker-compose -f docker-compose.aws.yml build
+#   → app イメージを ECR へ push
+#   → frontend/build を S3 へ sync
