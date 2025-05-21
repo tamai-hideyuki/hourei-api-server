@@ -15,8 +15,7 @@ src/bootstrap/cache/
 
 # ─ Docker / Compose ──────────────────────
 docker/node_modules/
-docker/env/*.env.development
-docker/env/*.env.staging
+docker/env/
 docker/docker-compose.override.yml
 
 # ─ 環境変数 ────────────────────────────
