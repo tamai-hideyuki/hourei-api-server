@@ -1,15 +1,26 @@
-FROM bref/php-81-fpm:latest
+# 1. Build ステージ：Composer を備えた公式イメージで依存解決
+FROM composer:2 AS vendor
 
-# 1. アプリコードをコピー
-COPY src/ /var/task/
+WORKDIR /var/task
+# 依存定義のみ先出しでキャッシュ効かせる
+COPY src/composer.json src/composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --prefer-dist --no-progress --no-interaction
 
-# 2. Composer インストール・最適化
-RUN composer install --no-dev --optimize-autoloader
+# 2. Production ステージ：Bref PHP-FPM ランタイム
+FROM --platform=$BUILDPLATFORM bref/php-81-fpm:latest
 
-# 3. キャッシュ生成
+# Lambda が /var/task をコードパスとする
+WORKDIR /var/task
+
+# ビルドステージから vendor 配下のみ取り込み
+COPY --from=vendor /var/task/vendor ./vendor
+# アプリケーションコードを配置
+COPY src/ ./
+
+# キャッシュをプリビルド
 RUN php artisan config:cache \
  && php artisan route:cache \
  && php artisan view:cache
 
-# 4. Lambda ハンドラ設定
+# デフォルトエントリポイントは Bref が管理
 CMD ["public/index.php"]
