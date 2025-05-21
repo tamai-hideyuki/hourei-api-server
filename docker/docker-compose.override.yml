@@ -15,7 +15,7 @@ services:
     container_name: hourei-api-server_frontend
     build:
       context: ../
-      dockerfile: Dockerfile.dev
+      dockerfile: docker/Dockerfile.dev
     env_file:
       - ./env/.env.development
     volumes:
