@@ -1,0 +1,32 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: dev
+    env_file:
+      - ./env/.env.development
+    volumes:
+      - ../src:/app
+    ports:
+      - "8000:8000"
+
+  frontend:
+    container_name: hourei-api-server_frontend
+    build:
+      context: ../
+      dockerfile: Dockerfile.dev
+    env_file:
+      - ./env/.env.development
+    volumes:
+      - ../frontend:/app/frontend:delegated
+      - node_modules:/app/frontend/node_modules
+    ports:
+      - "5173:5173"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - api
+
+volumes:
+  node_modules: {}

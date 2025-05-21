@@ -1,0 +1,22 @@
+# docker/dockerfile.dev
+# React Frontend Development Dockerfile with Vite
+
+FROM node:20-alpine
+
+# 作業ディレクトリをフロントエンドソース内に設定
+WORKDIR /app/frontend
+
+# 依存関係定義だけを先にコピーしてキャッシュ活用
+COPY frontend/package.json frontend/package-lock.json ./
+
+# 開発用依存インストール（ホットリロード含む）
+RUN npm ci --legacy-peer-deps
+
+# ソース全体をコピー
+COPY frontend/ ./
+
+# Vite をグローバルにインストール（任意）
+RUN npm install -g vite
+
+# 開発サーバ起動（ホスト全インターフェース公開）
+CMD ["npx", "vite", "--host", "0.0.0.0"]
