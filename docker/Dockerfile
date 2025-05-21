@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Laravel API
 
 # ── 開発ステージ ──
-FROM php:8.1-fpm-alpine AS dev
+FROM php:8.2-fpm-alpine AS dev
 WORKDIR /app
 
 # システムパッケージのインストール
@@ -33,7 +33,7 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction && \
     php artisan view:cache
 
 # ── 本番ステージ ──
-FROM php:8.1-fpm-alpine AS production
+FROM php:8.2-fpm-alpine AS production
 WORKDIR /app
 
 # PHP拡張のインストール
