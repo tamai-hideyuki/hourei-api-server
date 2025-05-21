@@ -1,26 +1,37 @@
-# 1. Build ステージ：Composer を備えた公式イメージで依存解決
-FROM composer:2 AS vendor
+# ────────────────────────────
+# 1. ビルドステージ：依存解決
+# ────────────────────────────
+FROM --platform=$BUILDPLATFORM composer:2 AS vendor
 
 WORKDIR /var/task
-# 依存定義のみ先出しでキャッシュ効かせる
-COPY src/composer.json src/composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --prefer-dist --no-progress --no-interaction
 
-# 2. Production ステージ：Bref PHP-FPM ランタイム
+# 依存定義のみ先出し＋スクリプトスキップでキャッシュ最適化
+COPY src/composer.json src/composer.lock ./
+RUN composer install \
+    --no-dev \
+    --prefer-dist \
+    --no-interaction \
+    --no-scripts \
+    --optimize-autoloader
+
+# ────────────────────────────
+# 2. 本番ステージ：Bref PHP-FPM
+# ────────────────────────────
 FROM --platform=$BUILDPLATFORM bref/php-81-fpm:latest
 
-# Lambda が /var/task をコードパスとする
 WORKDIR /var/task
 
-# ビルドステージから vendor 配下のみ取り込み
+# ビルド済み vendor とアプリコードを配置
 COPY --from=vendor /var/task/vendor ./vendor
-# アプリケーションコードを配置
 COPY src/ ./
 
-# キャッシュをプリビルド
-RUN php artisan config:cache \
- && php artisan route:cache \
- && php artisan view:cache
+# 依存スクリプトを手動実行
+RUN composer dump-autoload --optimize \
+ && php artisan key:generate --ansi \
+ && php artisan config:cache --ansi \
+ && php artisan route:cache --ansi \
+ && php artisan view:cache --ansi \
+ && php artisan package:discover --ansi || true
 
-# デフォルトエントリポイントは Bref が管理
+# Bref のデフォルトエントリポイントに委ねる
 CMD ["public/index.php"]
