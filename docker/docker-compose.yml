@@ -1,0 +1,11 @@
+services:
+  api:
+    container_name: hourei-api-server_api
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    env_file:
+      - ./env/.env.${COMPOSE_ENV:-production}
+    ports:
+      - "8000:8000"

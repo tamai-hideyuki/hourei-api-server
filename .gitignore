@@ -1,2 +1,35 @@
-.env
+# ─ Node.js ─────────────────────────────────
+# フロント／バック共通の node_modules
+**/node_modules/
+# Vite ビルド成果物（S3 配信前にローカルで生成するなら除外）
+frontend/dist/
+
+# ─ Composer / Laravel ────────────────────
+# Laravel の依存
+src/vendor/
+# SQLite DB ファイル
+src/database/database.sqlite
+# Laravel ログ／キャッシュ
+src/storage/
+src/bootstrap/cache/
+
+# ─ Docker / Compose ──────────────────────
+docker/node_modules/
+docker/env/
+docker/docker-compose.override.yml
+
+# ─ 環境変数 ────────────────────────────
+.env*
+docker/env
+docker/env/.env.production
+
+# ─ IDE / OS ─────────────────────────────
+macOS
+.DS_Store
+VSCode
+.vscode/
+# JetBrains 系
 .idea/
+npm
+npm-debug.log*
+yarn-error.log*
