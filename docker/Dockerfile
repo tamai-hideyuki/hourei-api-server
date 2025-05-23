@@ -33,22 +33,27 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction && \
     php artisan view:cache
 
 # ── 本番ステージ ──
-FROM php:8.2-fpm-alpine AS production
+# PHP-FPM ではなく、CLI 版で Artisan Serve を使う
+FROM php:8.2-cli-alpine AS production
 WORKDIR /app
 
-# PHP拡張のインストール
-RUN apk add --no-cache oniguruma-dev libzip-dev zip unzip && \
-    docker-php-ext-install pdo_mysql mbstring zip
+# 必要拡張とツールのインストール
+RUN apk add --no-cache oniguruma-dev libzip-dev zip unzip git \
+    && docker-php-ext-install pdo_mysql mbstring zip \
+    && apk del oniguruma-dev libzip-dev
 
-# ビルド成果物をコピー
+# ビルドステージから成果物をコピー
 COPY --from=build /app /app
 
-# パーミッション設定
+# キャッシュ／ストレージの権限調整
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
 
-# 環境変数
+# 本番環境設定
 ENV APP_ENV=production \
     APP_DEBUG=false
 
+# ポート8000で待ち受け
 EXPOSE 8000
-CMD ["php-fpm"]
+
+# Artisan Serve をエントリポイントに
+ENTRYPOINT ["php","artisan","serve","--host=0.0.0.0","--port=8000"]
