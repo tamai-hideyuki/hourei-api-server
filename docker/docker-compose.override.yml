@@ -9,7 +9,7 @@ services:
     volumes:
       - ../src:/app
     ports:
-      - "8000:8000"
+      - "8080:8080"
 
   frontend:
     container_name: hourei-api-server_frontend

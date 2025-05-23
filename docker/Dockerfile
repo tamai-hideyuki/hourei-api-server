@@ -23,36 +23,46 @@ COPY src/ ./
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
 
 # ── ビルドステージ ──
-FROM dev AS build
-WORKDIR /app
+FROM php:8.2-fpm-alpine AS build
 
-# 本番向け依存最適化
-RUN composer install --no-dev --optimize-autoloader --no-interaction && \
-    php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache
+WORKDIR /var/www
 
-# ── 本番ステージ ──
-FROM php:8.2-cli-alpine AS production
-WORKDIR /app
-
-# 必要拡張のインストール
-RUN apk add --no-cache oniguruma-dev libzip-dev zip unzip git \
+# 必要ライブラリ＆拡張インストール
+RUN apk add --no-cache zip unzip git oniguruma-dev libzip-dev \
  && docker-php-ext-install pdo_mysql mbstring zip \
  && apk del oniguruma-dev libzip-dev
 
-# ビルドステージから成果物をコピー
-COPY --from=build /app /app
+# composerインストール
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
-# キャッシュ／ストレージ権限調整
-RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
+# ソースをコピーして依存解決
+COPY src/composer.json src/composer.lock ./
+COPY src/ .
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# 本番環境設定
-ENV APP_ENV=production \
-    APP_DEBUG=false
+# ── 本番ステージ ──
+FROM php:8.2-fpm-alpine AS production
 
-# 8080番で待ち受けることを宣言
+# php-fpm & nginx のインストール
+RUN apk add --no-cache nginx bash
+
+WORKDIR /var/www
+
+# ビルド成果物コピー
+COPY --from=build /var/www /var/www
+
+# nginx 設定
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+
+# Entrypoint スクリプト
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# パーミッション調整
+RUN chown -R nginx:nginx /var/www \
+ && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
+# App Runner は常に 8080 を見る
 EXPOSE 8080
 
-# コンテナ起動時に「php artisan serve」を実行
-ENTRYPOINT ["php","artisan","serve","--host=0.0.0.0","--port=8000"]
+ENTRYPOINT ["docker-entrypoint.sh"]
