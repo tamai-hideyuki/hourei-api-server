@@ -6,6 +6,6 @@ services:
       dockerfile: docker/Dockerfile
       target: production
     env_file:
-      - ./env/.env.${COMPOSE_ENV:-production}
+      - ./env/.env.production
     ports:
-      - "8000:8000"
+      - "8080:8080"

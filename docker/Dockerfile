@@ -51,8 +51,8 @@ RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
 ENV APP_ENV=production \
     APP_DEBUG=false
 
-# 8000番で待ち受けることを宣言
-EXPOSE 8000
+# 8080番で待ち受けることを宣言
+EXPOSE 8080
 
 # コンテナ起動時に「php artisan serve」を実行
 ENTRYPOINT ["php","artisan","serve","--host=0.0.0.0","--port=8000"]
