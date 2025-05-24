@@ -5,6 +5,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HoureiApiController;
 
 
+Route::get('/ping', function () {
+    return response()->json(['status' => 'ok'], 200);
+});
+
+
 Route::get('/hourei/lawlists/category/{category}', [HoureiApiController::class, 'lawlistsByCategory']);
 
 
