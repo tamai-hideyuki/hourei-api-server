@@ -69,4 +69,4 @@ EXPOSE 8080
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 
-CMD ["php-fpm"]
+CMD ["CMD php -S 0.0.0.0:8080 -t public"]
