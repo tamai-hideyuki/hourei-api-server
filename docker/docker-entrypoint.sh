@@ -17,3 +17,10 @@ php-fpm -D
 
 # nginx をフォアグラウンド起動
 nginx -g "daemon off;"
+
+# Laravelの準備
+php-fpm -D
+nginx -g "daemon off;" &
+
+# nginxのエラーログをtailしてApp Runnerに生かす
+tail -f /var/log/nginx/error.log
