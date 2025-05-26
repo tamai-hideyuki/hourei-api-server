@@ -42,31 +42,22 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # ── 本番ステージ ──
 FROM php:8.2-fpm-alpine AS production
-
-# php-fpm & nginx のインストール
-RUN apk add --no-cache nginx bash
-
-RUN mkdir -p /var/log/nginx
-
 WORKDIR /var/www
 
-# ビルド成果物コピー
+RUN apk add --no-cache nginx bash \
+ && mkdir -p /var/log/nginx
+
+# ビルド成果物をコピー
 COPY --from=build /var/www /var/www
 
 # nginx 設定
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 
-# Entrypoint スクリプト
+# Entrypoint & パーミッション
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# パーミッション調整
-RUN chown -R nginx:nginx /var/www \
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+ && chown -R nginx:nginx /var/www \
  && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-ENTRYPOINT ["docker-entrypoint.sh"]
-
- # App Runner は常に 8080 を見るh
 EXPOSE 8080
-
-CMD ["CMD php -S 0.0.0.0:8080 -t public"]
+ENTRYPOINT ["docker-entrypoint.sh"]
