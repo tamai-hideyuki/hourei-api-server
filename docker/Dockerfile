@@ -64,9 +64,9 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 RUN chown -R nginx:nginx /var/www \
  && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
+ENTRYPOINT ["docker-entrypoint.sh"]
+
  # App Runner は常に 8080 を見るh
 EXPOSE 8080
-
-ENTRYPOINT ["docker-entrypoint.sh"]
 
 CMD ["CMD php -S 0.0.0.0:8080 -t public"]
