@@ -20,3 +20,6 @@ RUN npm install -g vite
 
 # 開発サーバ起動（ホスト全インターフェース公開）
 CMD ["npx", "vite", "--host", "0.0.0.0"]
+
+
+# docker run --rm -p 8080:8080 hourei-api-server
