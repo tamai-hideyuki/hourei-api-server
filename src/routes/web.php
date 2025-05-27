@@ -7,9 +7,8 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/ping', function () {
-    return response()->json(['status' => 'ok'], 200);
+Route::get('/health', function () {
+    return response('OK', 200);
 });
-
 
 
