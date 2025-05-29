@@ -8,9 +8,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://api:8000',
+        target: 'http://api:8080',
         changeOrigin: true,
       },
     },
   }
 })
+//この部分を自由に書き換えれれば、一枚で複数のAPIを取得できるかも？
+//target: 'http://api:8080',

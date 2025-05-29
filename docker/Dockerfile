@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Laravel API
 
 # ── 開発ステージ ──
-FROM php:8.2-fpm-alpine AS dev
+FROM php:8.1-fpm-alpine AS dev
 WORKDIR /app
 
 # システムパッケージのインストール
@@ -20,10 +20,10 @@ RUN composer install --no-interaction --no-scripts --prefer-dist
 COPY src/ ./
 
 # 開発サーバ起動コマンド
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
 
 # ── ビルドステージ ──
-FROM php:8.2-fpm-alpine AS build
+FROM php:8.1-fpm-alpine AS build
 
 WORKDIR /var/www
 
@@ -41,7 +41,7 @@ COPY src/ .
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # ── 本番ステージ ──
-FROM php:8.2-fpm-alpine AS production
+FROM php:8.1-fpm-alpine AS production
 WORKDIR /var/www
 
 RUN apk add --no-cache nginx bash \
