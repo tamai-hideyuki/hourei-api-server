@@ -4,8 +4,9 @@
 FROM composer:2.8 AS vendor
 
 WORKDIR /app
-COPY src/composer.json src/composer.lock ./
 
+# 依存解決のみ実行
+COPY src/composer.json src/composer.lock ./
 RUN composer install \
     --no-dev \
     --prefer-dist \
@@ -13,15 +14,15 @@ RUN composer install \
     --no-interaction \
     --no-scripts
 
+# アプリ本体をコピーし、post-autoload スクリプトを走らせる
 COPY src/ .
-
 RUN composer dump-autoload --optimize \
  && php artisan package:discover --ansi
 
 ############################
 # 2) 本番ステージ
 ############################
-FROM php:8.1-fpm-alpine AS production
+FROM php:8.1-fpm-slim AS production
 
 # 環境変数
 ENV COMPOSER_ALLOW_SUPERUSER=1 \
@@ -31,45 +32,43 @@ ENV COMPOSER_ALLOW_SUPERUSER=1 \
 
 WORKDIR /app
 
-# ❶ ビルド用依存をインストール（oniguruma-dev を再追加）
-RUN apk add --no-cache --virtual .build-deps \
-      $PHPIZE_DEPS \
-      libzip-dev \
-      zlib-dev \
-      mariadb-dev \
-      oniguruma-dev
-
-# ❷ ランタイム用パッケージを追加
-RUN apk add --no-cache \
+# システム依存関係とビルドツールを一度にインストール
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
       nginx \
-      bash \
       git \
       zip \
-      unzip
-
-# ❸ PHP 拡張をビルド
-RUN docker-php-ext-install \
+      unzip \
+      bash \
+      # PHP 拡張ビルドに必要なライブラリとツール
+      libzip-dev \
+      libonig-dev \
+      zlib1g-dev \
+      default-libmysqlclient-dev \
+      build-essential \
+      pkg-config \
+ && docker-php-ext-install \
       pdo_mysql \
       mbstring \
-      zip
+      zip \
+ && apt-get purge -y build-essential pkg-config \
+ && apt-get autoremove -y \
+ && rm -rf /var/lib/apt/lists/*
 
-# ❹ ビルド依存をクリーンアップ
-RUN apk del .build-deps
-
-# ❺ Nginx と Entrypoint
+# Nginx と Entrypoint スクリプト配置
 COPY docker/nginx.conf           /etc/nginx/nginx.conf
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# ❻ アプリ＋vendor をステージ1 から受け渡し
+# アプリ本体を vendor と共にステージ1 から受け渡し
 COPY --from=vendor /app /app
 
-# ❼ Laravel キャッシュ最適化
+# Laravel のキャッシュを生成
 RUN php artisan config:cache \
  && php artisan route:cache  \
  && php artisan view:cache
 
-# ❽ 必要ディレクトリと書き込み権限
+# 書き込みディレクトリの権限設定
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
  && chown -R www-data:www-data /app \
  && chmod -R ug+rwx storage bootstrap/cache
