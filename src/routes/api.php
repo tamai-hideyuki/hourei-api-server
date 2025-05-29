@@ -4,9 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HoureiApiController;
 
-Route::get('/ping', function () {
-    return response()->json(['status' => 'ok'], 200);
-});
+
+Route::get('/health', fn() => response()->json(['status' => 'ok']));
 
 
 
