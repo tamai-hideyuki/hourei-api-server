@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
+use PHPUnit\Exception;
 
 class HoureiApiController extends Controller
 {
@@ -24,29 +25,33 @@ class HoureiApiController extends Controller
             ['category' => 'required|integer|min:1|max:13']
         )->validate();
 
-        // e-Gov API 呼び出し
-        $response = Http::get("{$this->baseUrl}/lawlists/{$category}");
+        try {
+            // e-Gov API 呼び出し
+            $response = Http::get("{$this->baseUrl}/lawlists/{$category}");
 
-        if (! $response->ok()) {
-            return response()->json([
-                'error' => 'e-Gov API error'
-            ], $response->status());
+            if (! $response->ok()) {
+                return response()->json([
+                    'error' => 'e-Gov API error'
+                ], $response->status());
+            }
+
+            // XML をパースし、名前空間 e にバインド
+            $xml = simplexml_load_string($response->body());
+            $xml->registerXPathNamespace('e', 'http://elaws.e-gov.go.jp/api/1/');
+
+            // XPath で LawNameListInfo ノードを直接取得
+            $nodes = $xml->xpath('//e:LawNameListInfo');
+
+            // 各ノードから必要データを抽出
+            $items = array_map(fn($el) => [
+                'id'   => (string) $el->LawId,
+                'name' => (string) $el->LawName,
+            ], $nodes);
+
+            return response()->json($items);
+        } catch (Exception $e){
+            dd($e);
         }
-
-        // XML をパースし、名前空間 e にバインド
-        $xml = simplexml_load_string($response->body());
-        $xml->registerXPathNamespace('e', 'http://elaws.e-gov.go.jp/api/1/');
-
-        // XPath で LawNameListInfo ノードを直接取得
-        $nodes = $xml->xpath('//e:LawNameListInfo');
-
-        // 各ノードから必要データを抽出
-        $items = array_map(fn($el) => [
-            'id'   => (string) $el->LawId,
-            'name' => (string) $el->LawName,
-        ], $nodes);
-
-        return response()->json($items);
     }
 
     /**

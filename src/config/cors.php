@@ -2,21 +2,33 @@
 
 return [
 
-    // 1. CORS が有効か
+    /*
+    |--------------------------------------------------------------------------
+    | Cross-Origin Resource Sharing (CORS) Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure your settings for cross-origin resource sharing
+    | or "CORS". This determines what cross-origin operations may execute
+    | in web browsers. You are free to adjust these settings as needed.
+    |
+    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+    |
+    */
+
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
-    // 2. 許可するオリジン
-    'allowed_origins' => [
-        '*',
-    ],
+    'allowed_methods' => ['*'],
 
+    'allowed_origins' => ['*'],
 
-    // 3. 許可する HTTP メソッド
-    'allowed_methods' => ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    'allowed_origins_patterns' => [],
 
-    // 4. 許可するカスタムヘッダー
     'allowed_headers' => ['*'],
 
-    // 5. 送信済みクレデンシャル（Cookie 等）を許可するか
+    'exposed_headers' => [],
+
+    'max_age' => 0,
+
     'supports_credentials' => false,
+
 ];
