@@ -35,39 +35,44 @@ ENV COMPOSER_ALLOW_SUPERUSER=1 \
 
 WORKDIR /app
 
-# ❶ ビルド用依存とライブラリをまとめてインストール
+# ❶ ビルド用依存をインストール（oniguruma-dev を除外）
 RUN apk add --no-cache --virtual .build-deps \
       $PHPIZE_DEPS \
       libzip-dev \
-      oniguruma-dev \
       zlib-dev \
-      mariadb-dev \
-    && apk add --no-cache \
+      mariadb-dev
+
+# ❷ ランタイム用パッケージを追加
+RUN apk add --no-cache \
       nginx \
       bash \
       git \
       zip \
-      unzip \
-    && docker-php-ext-install \
+      unzip
+
+# ❸ PHP 拡張をビルド
+RUN docker-php-ext-install \
       pdo_mysql \
       mbstring \
-      zip \
-    && apk del .build-deps
+      zip
 
-# ❷ Nginx と Entrypoint スクリプト配置
+# ❹ ビルド依存をクリーンアップ
+RUN apk del .build-deps
+
+# ❺ Nginx と Entrypoint スクリプト配置
 COPY docker/nginx.conf           /etc/nginx/nginx.conf
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# ❸ composer 経由で vendor を受け渡し
+# ❻ composer 経由で vendor を受け渡し
 COPY --from=vendor /app /app
 
-# ❹ Laravel キャッシュ最適化
+# ❼ Laravel キャッシュ最適化
 RUN php artisan config:cache \
  && php artisan route:cache  \
  && php artisan view:cache
 
-# ❺ 必要ディレクトリと書き込み権限
+# ❽ 必要ディレクトリと書き込み権限
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
  && chown -R www-data:www-data /app \
  && chmod -R ug+rwx storage bootstrap/cache
