@@ -1,67 +1,41 @@
-# Multi-stage Dockerfile for Laravel API
-
-# ── 開発ステージ ──
-FROM php:8.1-fpm-alpine AS dev
+# 1) Composer 専用ステージ
+FROM composer:2 AS vendor
 WORKDIR /app
 
-# システムパッケージのインストール
-RUN apk add --no-cache oniguruma-dev libzip-dev zip unzip git
-
-# Composer（ビルド環境）
+# composer.json / lock のみコピーして依存解決
 COPY src/composer.json src/composer.lock ./
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
-    && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
-    && rm composer-setup.php
+RUN composer install \
+    --no-dev \
+    --optimize-autoloader \
+    --no-interaction
 
-# Laravel依存インストール
-RUN composer install --no-interaction --no-scripts --prefer-dist
-
-# ソースコードをコピー
-COPY src/ ./
-
-# 開発サーバ起動コマンド
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
-
-# ── ビルドステージ ──
-FROM php:8.1-fpm-alpine AS build
-WORKDIR /var/www
-
-# 1. 必要パッケージ＆拡張をインストール
-RUN apk add --no-cache \
-      zip unzip git oniguruma-dev libzip-dev \
-    && docker-php-ext-install pdo_mysql mbstring zip \
-    && apk del oniguruma-dev libzip-dev
-
-# 2. Composer 本体を取得
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
- && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
- && rm composer-setup.php
-
-# 3. 依存解決（composer.json / lockを先にコピー）
-COPY src/composer.json src/composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# 4. ソースコードをコピー
-COPY src/ ./
-
-
-# ── 本番ステージ ──
+# 2) 本番ステージ
 FROM php:8.1-fpm-alpine AS production
 WORKDIR /var/www
 
-RUN apk add --no-cache nginx bash \
- && mkdir -p /var/log/nginx
+# 必要パッケージ＆PHP拡張のインストール
+RUN apk add --no-cache \
+      nginx \
+      bash \
+      zip unzip git oniguruma-dev libzip-dev libzip \
+    && docker-php-ext-install pdo_mysql mbstring zip \
+    && apk del oniguruma-dev libzip-dev
 
-# ビルド成果物をコピー
-COPY --from=build /var/www /var/www
-
-# nginx 設定
+# nginx と Entrypoint
 COPY docker/nginx.conf /etc/nginx/nginx.conf
-
-# Entrypoint & パーミッション
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
- && chown -R nginx:nginx /var/www \
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# アプリケーションコードを丸ごとコピーする
+COPY src/ ./
+
+# vendor をマージする
+COPY --from=vendor /app/vendor ./vendor
+
+RUN php artisan package:discover --ansi
+
+# 権限調整
+RUN chown -R nginx:nginx /var/www \
  && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 8080
