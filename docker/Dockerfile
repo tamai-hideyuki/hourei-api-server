@@ -1,62 +1,56 @@
-# 1) Composer 専用ステージ
-FROM composer:2 AS vendor
+############################
+# 1) 依存解決ステージ
+############################
+FROM composer:2.8 AS vendor
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    APP_ENV=production
 
-# 作業ディレクトリを /src に
-WORKDIR /src
+WORKDIR /app
 
-# composer.json と composer.lock を先にコピー（キャッシュ効率のため）
+#  キャッシュ効率：先に composer.* のみ
 COPY src/composer.json src/composer.lock ./
 
-# 依存関係をインストール（/src/vendor が生成される）
+# Laravel の post-autoload 処理を実行
 RUN composer install \
     --no-dev \
-    --no-scripts \
+    --prefer-dist \
     --optimize-autoloader \
     --no-interaction
 
-# 残りのアプリケーションコードをコピー
-COPY src/ ./
+# 依存が固まってからソース一式を投入
+COPY src/ .
 
+############################
 # 2) 本番ステージ
+############################
 FROM php:8.1-fpm-alpine AS production
 
-# 1. 必要パッケージ＆PHP拡張のインストール
-RUN apk add --no-cache \
-      nginx \
-      bash \
-      zip \
-      unzip \
-      git \
-      oniguruma-dev \
-      libzip-dev \
-    && docker-php-ext-install pdo_mysql mbstring zip \
-    && apk del oniguruma-dev libzip-dev
+# ❹ 必要最小限の OS/PHP 拡張をインストール
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS libzip-dev oniguruma-dev \
+ && apk add --no-cache nginx bash git zip unzip \
+ && docker-php-ext-install pdo_mysql mbstring zip \
+ && apk del .build-deps
 
-# 2. Nginx と Entrypoint スクリプト配置
+# Nginx & Entrypoint
 COPY docker/nginx.conf           /etc/nginx/nginx.conf
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# 3. 作業ディレクトリを /src に
-WORKDIR /src
+WORKDIR /app
 
-# 4. vendor を含めたアプリケーションをステージ1 からコピー
-COPY --from=vendor /src /src
+# アプリ＋vendor まとめて受け渡し（キャッシュ済み）
+COPY --from=vendor /app /app
 
-# 5. Laravel 最適化コマンド
+# Laravel 最適化
 RUN php artisan config:cache \
- && php artisan route:cache \
+ && php artisan route:cache  \
  && php artisan view:cache
 
-# 6. 必要ディレクトリの作成と権限設定
-RUN mkdir -p \
-      storage/framework/{sessions,views,cache} \
-      storage/logs \
-      bootstrap/cache \
-    && chown -R nginx:nginx /src \
-    && chmod -R 775 /src/storage /src/bootstrap/cache
+# パーミッション調整
+RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
+ && chown -R www-data:www-data /app \
+ && chmod -R ug+rwx storage bootstrap/cache
 
-# 7. ポート開放 & Entrypoint
 EXPOSE 8080
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]
