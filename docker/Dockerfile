@@ -1,28 +1,15 @@
-############################
-# 1) 依存解決ステージ
-############################
 FROM composer:2.8 AS vendor
-ENV COMPOSER_ALLOW_SUPERUSER=1 \
-    APP_ENV=production
-
 WORKDIR /app
 
-#  キャッシュ効率：先に composer.* のみ
 COPY src/composer.json src/composer.lock ./
+RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts
 
-# Laravel の post-autoload 処理を実行
-RUN composer install \
-    --no-dev \
-    --prefer-dist \
-    --optimize-autoloader \
-    --no-interaction
-
-# 依存が固まってからソース一式を投入
 COPY src/ .
 
-############################
-# 2) 本番ステージ
-############################
+RUN composer dump-autoload --optimize \
+ && php artisan package:discover --ansi
+
+
 FROM php:8.1-fpm-alpine AS production
 
 # ❹ 必要最小限の OS/PHP 拡張をインストール
