@@ -31,22 +31,22 @@ CMD ["php","artisan","serve","--host=0.0.0.0","--port=8080"]
 FROM php:8.1-fpm-alpine AS build
 WORKDIR /var/www/html
 
-# ビルド用依存のインストールと拡張ビルド
-RUN apk add --no-cache --virtual .build-deps \
-      oniguruma-dev libzip-dev zip unzip git ${PHPIZE_DEPS} \
-    && docker-php-ext-install mbstring zip pdo_mysql \
-    && apk del .build-deps \
-    && rm -rf /var/cache/apk/*
+RUN apk add --no-cache \
+      libzip            \
+      zip unzip git
 
-# Composer を公式イメージから拝借
+
+RUN apk add --no-cache --virtual .build-deps \
+      oniguruma-dev ${PHPIZE_DEPS} \
+ && docker-php-ext-install mbstring zip pdo_mysql \
+ && apk del .build-deps \
+ && rm -rf /var/cache/apk/*
+
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
-# 依存解決（本番用）
-COPY src/composer.json src/composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# アプリケーションコード配置
 COPY src/ ./
+
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 
 # ── 本番ステージ ──
