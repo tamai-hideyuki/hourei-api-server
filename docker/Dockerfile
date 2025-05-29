@@ -28,13 +28,14 @@ RUN apk add --no-cache --virtual .build-deps \
       zip \
       unzip
 
-# ❺ mbstring／zip の明示的 configure ＋ インストール
-RUN docker-php-ext-configure mbstring --with-oniguruma && \
-    docker-php-ext-configure zip --with-libzip && \
+# ❺ zip のみ configure し、mbstring はそのままインストール
+RUN docker-php-ext-configure zip --with-libzip && \
     docker-php-ext-install \
       pdo_mysql \
       mbstring \
       zip
+
+
 
 # ❻ ビルド依存だけ削除し軽量化
 RUN apk del .build-deps
