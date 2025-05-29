@@ -24,21 +24,26 @@ CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
 
 # ── ビルドステージ ──
 FROM php:8.1-fpm-alpine AS build
-
 WORKDIR /var/www
 
-# 必要ライブラリ＆拡張インストール
-RUN apk add --no-cache zip unzip git oniguruma-dev libzip-dev \
- && docker-php-ext-install pdo_mysql mbstring zip \
- && apk del oniguruma-dev libzip-dev
+# 1. 必要パッケージ＆拡張をインストール
+RUN apk add --no-cache \
+      zip unzip git oniguruma-dev libzip-dev \
+    && docker-php-ext-install pdo_mysql mbstring zip \
+    && apk del oniguruma-dev libzip-dev
 
-# composerインストール
-COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+# 2. Composer 本体を取得
+RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
+ && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
+ && rm composer-setup.php
 
-# ソースをコピーして依存解決
+# 3. 依存解決（composer.json / lockを先にコピー）
 COPY src/composer.json src/composer.lock ./
-COPY src/ .
 RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# 4. ソースコードをコピー
+COPY src/ ./
+
 
 # ── 本番ステージ ──
 FROM php:8.1-fpm-alpine AS production
