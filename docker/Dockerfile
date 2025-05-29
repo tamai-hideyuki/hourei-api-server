@@ -1,79 +1,63 @@
-############################
-# 1) 依存解決ステージ
-############################
-FROM composer:2.8 AS vendor
+# Multi-stage Dockerfile for Laravel API
 
+# ── 開発ステージ ──
+FROM php:8.1-fpm-alpine AS dev
 WORKDIR /app
 
-# 依存解決のみ実行
+# システムパッケージのインストール
+RUN apk add --no-cache oniguruma-dev libzip-dev zip unzip git
+
+# Composer（ビルド環境）
 COPY src/composer.json src/composer.lock ./
-RUN composer install \
-    --no-dev \
-    --prefer-dist \
-    --optimize-autoloader \
-    --no-interaction \
-    --no-scripts
+RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
+    && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
+    && rm composer-setup.php
 
-# アプリ本体をコピーし、post-autoload スクリプトを走らせる
+# Laravel依存インストール
+RUN composer install --no-interaction --no-scripts --prefer-dist
+
+# ソースコードをコピー
+COPY src/ ./
+
+# 開発サーバ起動コマンド
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
+
+# ── ビルドステージ ──
+FROM php:8.1-fpm-alpine AS build
+
+WORKDIR /var/www
+
+# 必要ライブラリ＆拡張インストール
+RUN apk add --no-cache zip unzip git oniguruma-dev libzip-dev \
+ && docker-php-ext-install pdo_mysql mbstring zip \
+ && apk del oniguruma-dev libzip-dev
+
+# composerインストール
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+# ソースをコピーして依存解決
+COPY src/composer.json src/composer.lock ./
 COPY src/ .
-RUN composer dump-autoload --optimize \
- && php artisan package:discover --ansi
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-############################
-# 2) 本番ステージ
-############################
-FROM php:8.1-fpm-slim AS production
+# ── 本番ステージ ──
+FROM php:8.1-fpm-alpine AS production
+WORKDIR /var/www
 
-# 環境変数
-ENV COMPOSER_ALLOW_SUPERUSER=1 \
-    APP_ENV=production \
-    APP_DEBUG=false \
-    LOG_CHANNEL=stderr
+RUN apk add --no-cache nginx bash \
+ && mkdir -p /var/log/nginx
 
-WORKDIR /app
+# ビルド成果物をコピー
+COPY --from=build /var/www /var/www
 
-# システム依存関係とビルドツールを一度にインストール
-RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      nginx \
-      git \
-      zip \
-      unzip \
-      bash \
-      # PHP 拡張ビルドに必要なライブラリとツール
-      libzip-dev \
-      libonig-dev \
-      zlib1g-dev \
-      default-libmysqlclient-dev \
-      build-essential \
-      pkg-config \
- && docker-php-ext-install \
-      pdo_mysql \
-      mbstring \
-      zip \
- && apt-get purge -y build-essential pkg-config \
- && apt-get autoremove -y \
- && rm -rf /var/lib/apt/lists/*
+# nginx 設定
+COPY docker/nginx.conf /etc/nginx/nginx.conf
 
-# Nginx と Entrypoint スクリプト配置
-COPY docker/nginx.conf           /etc/nginx/nginx.conf
+# Entrypoint & パーミッション
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# アプリ本体を vendor と共にステージ1 から受け渡し
-COPY --from=vendor /app /app
-
-# Laravel のキャッシュを生成
-RUN php artisan config:cache \
- && php artisan route:cache  \
- && php artisan view:cache
-
-# 書き込みディレクトリの権限設定
-RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
- && chown -R www-data:www-data /app \
- && chmod -R ug+rwx storage bootstrap/cache
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+ && chown -R nginx:nginx /var/www \
+ && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 8080
-
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["php-fpm"]
