@@ -20,7 +20,8 @@ RUN apk add --no-cache --virtual .build-deps \
       $PHPIZE_DEPS \
       libzip-dev \
       oniguruma-dev \
-      zlib-dev && \
+      zlib-dev \
+      mariadb-dev && \
     apk add --no-cache \
       nginx \
       bash \
