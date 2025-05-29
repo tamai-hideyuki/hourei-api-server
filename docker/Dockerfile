@@ -3,11 +3,9 @@
 ############################
 FROM composer:2.8 AS vendor
 
-# Laravel の post-autoload で artisan を呼べるように
 WORKDIR /app
 COPY src/composer.json src/composer.lock ./
 
-# スクリプトを抑止して依存解決のみ
 RUN composer install \
     --no-dev \
     --prefer-dist \
@@ -15,10 +13,8 @@ RUN composer install \
     --no-interaction \
     --no-scripts
 
-# アプリ本体をコピー
 COPY src/ .
 
-# 依存解決後にスクリプトとパッケージ検出
 RUN composer dump-autoload --optimize \
  && php artisan package:discover --ansi
 
@@ -27,7 +23,7 @@ RUN composer dump-autoload --optimize \
 ############################
 FROM php:8.1-fpm-alpine AS production
 
-# 環境変数で権限エラーを抑制
+# 環境変数
 ENV COMPOSER_ALLOW_SUPERUSER=1 \
     APP_ENV=production \
     APP_DEBUG=false \
@@ -35,12 +31,13 @@ ENV COMPOSER_ALLOW_SUPERUSER=1 \
 
 WORKDIR /app
 
-# ❶ ビルド用依存をインストール（oniguruma-dev を除外）
+# ❶ ビルド用依存をインストール（oniguruma-dev を再追加）
 RUN apk add --no-cache --virtual .build-deps \
       $PHPIZE_DEPS \
       libzip-dev \
       zlib-dev \
-      mariadb-dev
+      mariadb-dev \
+      oniguruma-dev
 
 # ❷ ランタイム用パッケージを追加
 RUN apk add --no-cache \
@@ -59,12 +56,12 @@ RUN docker-php-ext-install \
 # ❹ ビルド依存をクリーンアップ
 RUN apk del .build-deps
 
-# ❺ Nginx と Entrypoint スクリプト配置
+# ❺ Nginx と Entrypoint
 COPY docker/nginx.conf           /etc/nginx/nginx.conf
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# ❻ composer 経由で vendor を受け渡し
+# ❻ アプリ＋vendor をステージ1 から受け渡し
 COPY --from=vendor /app /app
 
 # ❼ Laravel キャッシュ最適化
