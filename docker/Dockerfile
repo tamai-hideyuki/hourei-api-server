@@ -1,30 +1,26 @@
 # ── Multi-stage Dockerfile for Laravel API ──
 
-# ── 共通変数 ──
-ARG PHP_VERSION=8.1
-ARG WORKDIR_PATH=/var/www/html
-
 # ── 開発ステージ ──
-FROM php:${PHP_VERSION}-fpm-alpine AS dev
-WORKDIR ${WORKDIR_PATH}
+FROM php:8.1-fpm-alpine AS dev
+WORKDIR /var/www/html
 
-# ビルドツール＋依存パッケージ（dev用）
-RUN apk add --no-cache \
-      oniguruma-dev libzip-dev zip unzip git \
-      ${PHPIZE_DEPS} \
- && docker-php-ext-install mbstring zip pdo_mysql \
- && apk del ${PHPIZE_DEPS}
+# 開発時に必要なツールと拡張を一度にインストールし、ビルド用依存を削除
+RUN apk add --no-cache --virtual .build-deps \
+      oniguruma-dev libzip-dev zip unzip git ${PHPIZE_DEPS} \
+    && docker-php-ext-install mbstring zip pdo_mysql \
+    && apk del .build-deps \
+    && rm -rf /var/cache/apk/*
 
-# Composer（ビルド環境）
+# Composer インストール
 COPY src/composer.json src/composer.lock ./
 RUN php -r "copy('https://getcomposer.org/installer','composer-setup.php');" \
  && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
  && rm composer-setup.php
 
-# 依存インストール
+# 依存解決（開発用）
 RUN composer install --no-interaction --no-scripts --prefer-dist
 
-# ソース全文を配置
+# ソースコード配置
 COPY src/ ./
 
 # 開発サーバ起動
@@ -32,46 +28,46 @@ CMD ["php","artisan","serve","--host=0.0.0.0","--port=8080"]
 
 
 # ── ビルドステージ ──
-FROM php:${PHP_VERSION}-fpm-alpine AS build
-WORKDIR ${WORKDIR_PATH}
+FROM php:8.1-fpm-alpine AS build
+WORKDIR /var/www/html
 
-# 最小限のビルド依存のみ
+# ビルド用依存のインストールと拡張ビルド
 RUN apk add --no-cache --virtual .build-deps \
-      zip unzip git oniguruma-dev libzip-dev ${PHPIZE_DEPS} \
- && docker-php-ext-install mbstring zip pdo_mysql \
- && apk del .build-deps \
- && rm -rf /var/cache/apk/*
+      oniguruma-dev libzip-dev zip unzip git ${PHPIZE_DEPS} \
+    && docker-php-ext-install mbstring zip pdo_mysql \
+    && apk del .build-deps \
+    && rm -rf /var/cache/apk/*
 
-# Composer は公式イメージから拝借
+# Composer を公式イメージから拝借
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
-# 依存解決
+# 依存解決（本番用）
 COPY src/composer.json src/composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# ソース全文を配置
+# アプリケーションコード配置
 COPY src/ ./
 
 
 # ── 本番ステージ ──
-FROM php:${PHP_VERSION}-fpm-alpine AS production
-WORKDIR ${WORKDIR_PATH}
+FROM php:8.1-fpm-alpine AS production
+WORKDIR /var/www/html
 
-# ランタイム＋Nginx
+# ランタイム＆Nginx インストール
 RUN apk add --no-cache nginx bash \
- && mkdir -p /var/log/nginx
+    && mkdir -p /var/log/nginx
 
-# buildステージからファイルを丸ごとコピー
-COPY --from=build ${WORKDIR_PATH} ${WORKDIR_PATH}
+# build ステージから全ファイルを引き継ぎ
+COPY --from=build /var/www/html /var/www/html
 
-# Nginx 設定とエントリーポイント
+# Nginx 設定と Entrypoint
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # パーミッション調整
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
- && chown -R nginx:nginx ${WORKDIR_PATH} \
- && chmod -R 775 ${WORKDIR_PATH}/storage ${WORKDIR_PATH}/bootstrap/cache
+ && chown -R nginx:nginx /var/www/html \
+ && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 8080
 ENTRYPOINT ["docker-entrypoint.sh"]
