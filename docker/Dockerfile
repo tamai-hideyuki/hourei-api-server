@@ -17,9 +17,6 @@ RUN composer install \
 # 残りのアプリケーションコードをコピー
 COPY src/ ./
 
-
-
-```dockerfile
 # 2) 本番ステージ
 FROM php:8.1-fpm-alpine AS production
 
