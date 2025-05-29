@@ -1,39 +1,58 @@
+############################
+# 1) 依存解決ステージ
+############################
 FROM composer:2.8 AS vendor
 WORKDIR /app
-
 COPY src/composer.json src/composer.lock ./
-RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts
-
+RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-scripts
 COPY src/ .
-
 RUN composer dump-autoload --optimize \
  && php artisan package:discover --ansi
 
-
+############################
+# 2) 本番ステージ
+############################
 FROM php:8.1-fpm-alpine AS production
+WORKDIR /app
 
-# ❹ 必要最小限の OS/PHP 拡張をインストール
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS libzip-dev oniguruma-dev \
- && apk add --no-cache nginx bash git zip unzip \
- && docker-php-ext-install pdo_mysql mbstring zip \
- && apk del .build-deps
+# ❹ ビルド依存と必要ライブラリを一気に導入
+RUN apk add --no-cache --virtual .build-deps \
+      $PHPIZE_DEPS \
+      libzip-dev \
+      oniguruma-dev \
+      zlib-dev && \
+    apk add --no-cache \
+      nginx \
+      bash \
+      git \
+      zip \
+      unzip
 
-# Nginx & Entrypoint
+# ❺ mbstring／zip の明示的 configure ＋ インストール
+RUN docker-php-ext-configure mbstring --with-oniguruma && \
+    docker-php-ext-configure zip --with-libzip && \
+    docker-php-ext-install \
+      pdo_mysql \
+      mbstring \
+      zip
+
+# ❻ ビルド依存だけ削除し軽量化
+RUN apk del .build-deps
+
+# ❼ Nginx と Entrypoint
 COPY docker/nginx.conf           /etc/nginx/nginx.conf
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-WORKDIR /app
-
-# アプリ＋vendor まとめて受け渡し（キャッシュ済み）
+# ❽ アプリ＋vendor をステージ1 から受け渡し
 COPY --from=vendor /app /app
 
-# Laravel 最適化
+# ❾ Laravel キャッシュ生成
 RUN php artisan config:cache \
  && php artisan route:cache  \
  && php artisan view:cache
 
-# パーミッション調整
+# ❿ パーミッション調整＆公開ポート
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
  && chown -R www-data:www-data /app \
  && chmod -R ug+rwx storage bootstrap/cache
