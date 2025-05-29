@@ -2,7 +2,7 @@
 
 # ── 開発ステージ ──
 FROM php:8.1-fpm-alpine AS dev
-WORKDIR /var/www
+WORKDIR /var/www/html
 
 RUN apk add --no-cache oniguruma-dev libzip-dev zip unzip git
 
@@ -19,7 +19,7 @@ CMD ["php","artisan","serve","--host=0.0.0.0","--port=8080"]
 
 # ── ビルドステージ ──
 FROM php:8.1-fpm-alpine AS build
-WORKDIR /var/www
+WORKDIR /var/www/html
 
 RUN apk add --no-cache zip unzip git oniguruma-dev libzip-dev \
  && docker-php-ext-install pdo_mysql mbstring zip \
@@ -33,7 +33,7 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # ── 本番ステージ ──
 FROM php:8.1-fpm-alpine AS production
-WORKDIR /var/www
+WORKDIR /var/www/html
 
 RUN apk add --no-cache \
       nginx bash \
@@ -45,7 +45,7 @@ RUN apk add --no-cache \
  && mkdir -p /var/log/nginx \
  && rm -rf /var/cache/apk/*
 
-COPY --from=build /var/www /var/www
+COPY --from=build /var/www/html /var/www/html
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

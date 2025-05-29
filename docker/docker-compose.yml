@@ -5,6 +5,9 @@ services:
       context: .
       dockerfile: docker/Dockerfile
       target: production
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
     ports:
       - "8080:8080"
     environment:
