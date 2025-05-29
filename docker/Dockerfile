@@ -44,17 +44,25 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 FROM php:8.1-fpm-alpine AS production
 WORKDIR /var/www
 
-RUN apk add --no-cache nginx bash \
- && mkdir -p /var/log/nginx
+# ビルドツール＋必要ライブラリを追加し、拡張をビルド後に削除
+RUN apk add --no-cache \
+      nginx bash \
+      zip unzip git \
+      oniguruma-dev libzip-dev \
+      ${PHPIZE_DEPS} \
+ && docker-php-ext-install \
+      pdo_mysql \
+      mbstring \
+      zip \
+ && apk del \
+      oniguruma-dev libzip-dev \
+      ${PHPIZE_DEPS}
 
-# ビルド成果物をコピー
+RUN mkdir -p /var/log/nginx
 COPY --from=build /var/www /var/www
-
-# nginx 設定
 COPY docker/nginx.conf /etc/nginx/nginx.conf
-
-# Entrypoint & パーミッション
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
  && chown -R nginx:nginx /var/www \
  && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
