@@ -28,9 +28,8 @@ RUN apk add --no-cache --virtual .build-deps \
       zip \
       unzip
 
-# ❺ zip のみ configure し、mbstring はそのままインストール
-RUN docker-php-ext-configure zip --with-libzip && \
-    docker-php-ext-install \
+# ❺ mbstring と zip をまとめてインストール（configure は不要）
+RUN docker-php-ext-install \
       pdo_mysql \
       mbstring \
       zip
