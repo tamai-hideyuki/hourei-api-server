@@ -2,18 +2,19 @@
 FROM composer:2 AS vendor
 WORKDIR /app
 
-# composer.json / lock のみコピーして依存解決
+# composer.json / lock のみコピーして依存解決（スクリプトはスキップ）
 COPY src/composer.json src/composer.lock ./
 RUN composer install \
     --no-dev \
     --optimize-autoloader \
+    --no-scripts \
     --no-interaction
 
 # 2) 本番ステージ
 FROM php:8.1-fpm-alpine AS production
 WORKDIR /var/www
 
-# 必要パッケージ＆PHP拡張のインストール
+# 必要パッケージ＆PHP拡張（libzip本体は残す）
 RUN apk add --no-cache \
       nginx \
       bash \
@@ -26,12 +27,13 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# アプリケーションコードを丸ごとコピーする
+# アプリケーションコードを丸ごとコピー（artisan もここで来る）
 COPY src/ ./
 
-# vendor をマージする
+# vendor ディレクトリだけマージ
 COPY --from=vendor /app/vendor ./vendor
 
+# Laravel のキャッシュを生成
 RUN php artisan package:discover --ansi
 
 # 権限調整
