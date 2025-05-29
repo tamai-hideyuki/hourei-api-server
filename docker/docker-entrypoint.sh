@@ -5,10 +5,11 @@ php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 
-if [ ! -f .env ]; then
+if [ ! -f .env ] && [ -f .env.example ]; then
   cp .env.example .env
-  php artisan key:generate
+  php artisan key:generate --force
 fi
+
 
 # 起動順序
 php-fpm -D
